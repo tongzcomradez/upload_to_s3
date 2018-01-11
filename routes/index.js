@@ -12,21 +12,21 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
   const config = {
-    Bucket: 'jonathan-images',
-    accessKeyId: "AKIAJMEQCK3EU2VM3XOA",
-    secretAccessKey: "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",
+    bucket: 'jonathan-images',
+    accessKeyId: 'AKIAJNN72LIWVHZGVCCQ',
+    secretAccessKey: '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'
   }
 
   const form = new multiparty.Form()
-  form.parse(req, (err, fields, files) => {
-    files.file.forEach(({ originalFilename, path }) => {
+  form.parse(req, (err, fields, { file }) => {
+    file.forEach(({ originalFilename, path, headers }) => {
       fs.readFile(path, (err, tmpFile) => {
         if (err) res.send(err)
         const pathFile = `images/${uniqId()}.${getFileType(originalFilename)}`
-        
-        let s3obj = new AWS.S3({
+        const s3obj = new AWS.S3({
           params: {
-            Bucket: config.Bucket,
+            ContentType: headers['content-type'],
+            Bucket: config.bucket, 
             Key: pathFile
           }
         })
@@ -35,11 +35,11 @@ router.post('/', (req, res, next) => {
         s3obj.config.secretAccessKey = config.secretAccessKey
 
         s3obj.upload({Body: tmpFile})
-        .on('httpUploadProgress', function(evt) { console.log(evt); })
-        .send(function(err, { Location }) { 
-          if (err) res.send(err)
+        .on('httpUploadProgress', evt => console.log)
+        .send((err, { Location }) => { 
+          if (err) res.json(err)
           res.render('index', {title: 'Success', url: Location})
-         });
+        });
       })
     })
   })
